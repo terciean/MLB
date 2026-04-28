@@ -153,7 +153,8 @@ app.MapGet("/api/user/diagnostics", [Authorize(Policy = "UserOnly")] (HttpContex
 app.UseDefaultFiles();
 app.UseStaticFiles(new StaticFileOptions
 {
-    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(app.Environment.ContentRootPath),
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(
+        Path.Combine(app.Environment.ContentRootPath, "wwwroot")),
     RequestPath = ""
 });
 
