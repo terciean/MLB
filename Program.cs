@@ -12,6 +12,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LoginPath = "/login";
         options.AccessDeniedPath = "/login";
         options.Cookie.Name = "mlb.auth";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.SameSite = SameSiteMode.Strict;
         options.ExpireTimeSpan = TimeSpan.FromHours(12);
         options.SlidingExpiration = true;
     });
@@ -25,6 +28,13 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddSingleton<RequestAnalyticsStore>();
 
 var app = builder.Build();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
 var startTime = DateTimeOffset.UtcNow;
 
 var users = builder.Configuration.GetSection("AdminPortal:Users")
@@ -151,15 +161,11 @@ app.MapGet("/api/user/diagnostics", [Authorize(Policy = "UserOnly")] (HttpContex
 });
 
 app.UseDefaultFiles();
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(app.Environment.ContentRootPath),
-    RequestPath = ""
-});
+app.UseStaticFiles();
 
 app.Run();
 
-internal sealed class PortalUser
+public sealed class PortalUser
 {
     public string Username { get; set; } = "";
     public string Password { get; set; } = "";
