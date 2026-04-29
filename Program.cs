@@ -26,6 +26,7 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddSingleton<RequestAnalyticsStore>();
+builder.Services.AddSingleton<ProjectStore>();
 
 var app = builder.Build();
 
@@ -66,6 +67,52 @@ app.Use(async (context, next) =>
         stopwatch.Stop();
         analytics.TrackResponse(path, context.Response.StatusCode, stopwatch.ElapsedMilliseconds);
     }
+});
+
+// --- Public API ---
+app.MapPost("/api/contact", async (HttpContext context, ProjectStore projects) =>
+{
+    var form = await context.Request.ReadFormAsync();
+    var name = form["name"].ToString();
+    var email = form["email"].ToString();
+    var phone = form["phone"].ToString();
+    var type = form["type"].ToString(); // "Quote", "Consultation", "Emergency"
+    var message = form["message"].ToString();
+
+    if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(phone))
+    {
+        return Results.BadRequest("Name and Phone are required.");
+    }
+
+    projects.AddRequest(new ProjectRequest(
+        Guid.NewGuid().ToString("N")[..8],
+        name,
+        email,
+        phone,
+        type,
+        message,
+        DateTimeOffset.UtcNow
+    ));
+
+    return Results.Ok(new { message = "Request submitted successfully. Benny will contact you soon." });
+});
+
+// --- Owner API ---
+app.MapGet("/api/owner/projects", [Authorize(Policy = "OwnerOnly")] (ProjectStore projects) => 
+    Results.Json(projects.GetAll()));
+
+app.MapPost("/api/owner/projects/{id}/status", [Authorize(Policy = "OwnerOnly")] (string id, HttpContext context, ProjectStore projects) =>
+{
+    var status = context.Request.Query["status"].ToString();
+    var dateStr = context.Request.Query["date"].ToString();
+    
+    DateTimeOffset? scheduledDate = null;
+    if (DateTimeOffset.TryParse(dateStr, out var d)) scheduledDate = d;
+
+    if (projects.UpdateStatus(id, status, scheduledDate))
+        return Results.Ok();
+    
+    return Results.NotFound();
 });
 
 app.MapGet("/login", (HttpContext context) =>
@@ -175,6 +222,51 @@ public sealed class PortalUser
     public string Username { get; set; } = "";
     public string Password { get; set; } = "";
     public string Role { get; set; } = "";
+}
+
+internal sealed class ProjectStore
+{
+    private readonly ConcurrentDictionary<string, ProjectRequest> _projects = new();
+
+    public ProjectStore()
+    {
+        // Add some dummy data for initial testing
+        AddRequest(new ProjectRequest("m-001", "John Doe", "john@example.com", "021 555 1234", "Solar Quote", "Needs 5kW system for home in Strand", DateTimeOffset.UtcNow.AddHours(-5)) { Status = "Pending" });
+        AddRequest(new ProjectRequest("m-002", "Sarah Smith", "sarah@somerset.co.za", "082 999 4433", "Emergency", "Main DB tripping repeatedly", DateTimeOffset.UtcNow.AddDays(-1)) { Status = "Approved" });
+    }
+
+    public void AddRequest(ProjectRequest request) => _projects.TryAdd(request.Id, request);
+    
+    public IEnumerable<ProjectRequest> GetAll() => _projects.Values.OrderByDescending(x => x.CreatedAt);
+
+    public bool UpdateStatus(string id, string status, DateTimeOffset? date = null)
+    {
+        if (_projects.TryGetValue(id, out var p))
+        {
+            p.Status = status;
+            if (date.HasValue) p.ScheduledDate = date;
+            return true;
+        }
+        return false;
+    }
+}
+
+internal sealed class ProjectRequest
+{
+    public string Id { get; init; }
+    public string Name { get; init; }
+    public string Email { get; init; }
+    public string Phone { get; init; }
+    public string Type { get; init; }
+    public string Message { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public string Status { get; set; } = "Pending"; // Pending, Approved, Scheduled, Completed, Declined
+    public DateTimeOffset? ScheduledDate { get; set; }
+
+    public ProjectRequest(string id, string name, string email, string phone, string type, string message, DateTimeOffset createdAt)
+    {
+        Id = id; Name = name; Email = email; Phone = phone; Type = type; Message = message; CreatedAt = createdAt;
+    }
 }
 
 internal sealed class RequestAnalyticsStore
@@ -297,107 +389,189 @@ public const string OwnerDashboardHtml = """
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Owner Dashboard | MLB</title>
+  <title>Owner Management | MLB</title>
   <style>
-    :root { --bg: #060d1a; --card: #0f172a; --border: #1e293b; --text: #f8fafc; --muted: #94a3b8; --primary: #3b82f6; --success: #22c55e; --danger: #ef4444; }
-    body{font-family:'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);margin:0;padding:24px;line-height:1.5}
-    .container { max-width: 1100px; margin: 0 auto; }
-    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:32px;padding-bottom:16px;border-bottom:1px solid var(--border)}
-    h1{margin:0;font-size:1.5rem;font-weight:600}
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:32px}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1)}
-    .card-label{color:var(--muted);font-size:0.875rem;font-weight:500;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.025em}
-    .card-value{font-size:1.875rem;font-weight:700}
-    .status-pill { display: inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:99px; font-size:0.875rem; font-weight:600; background:rgba(34,197,94,0.1); color:var(--success); }
-    .status-pill.danger { background:rgba(239,68,68,0.1); color:var(--danger); }
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-    th { text-align: left; color: var(--muted); font-size: 0.75rem; text-transform: uppercase; padding: 12px 0; border-bottom: 1px solid var(--border); }
-    td { padding: 14px 0; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
-    .route-name { font-family: monospace; color: var(--primary); }
-    .btn-logout { padding:8px 16px; border:1px solid var(--border); border-radius:8px; background:transparent; color:var(--text); cursor:pointer; font-weight:500; transition:all 0.2s; }
-    .btn-logout:hover { background:var(--border); }
-    .empty { color: var(--muted); font-style: italic; padding: 20px 0; }
+    :root { --bg: #0f172a; --card: #1e293b; --border: #334155; --text: #f8fafc; --muted: #94a3b8; --primary: #3b82f6; --success: #22c55e; --danger: #ef4444; --warning: #f59e0b; }
+    body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);margin:0;display:flex;min-height:100vh}
+    
+    /* Sidebar */
+    aside { width: 240px; background: #020617; border-right: 1px solid var(--border); padding: 24px; display: flex; flex-direction: column; }
+    .nav-btn { padding: 12px 16px; border-radius: 8px; cursor: pointer; margin-bottom: 8px; font-weight: 500; color: var(--muted); transition: all 0.2s; display: flex; align-items: center; gap: 12px; }
+    .nav-btn:hover { background: var(--card); color: var(--text); }
+    .nav-btn.active { background: var(--primary); color: white; }
+    
+    /* Main Content */
+    main { flex: 1; padding: 32px; overflow-y: auto; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+    .btn-action { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; }
+    
+    /* UI Components */
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; margin-bottom: 32px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; }
+    .section-title { font-size: 1.1rem; font-weight: 600; margin: 0 0 20px 0; display: flex; align-items: center; justify-content: space-between; }
+    
+    /* Project Items */
+    .project-item { background: #020617; border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .tag { font-size: 0.7rem; text-transform: uppercase; padding: 4px 8px; border-radius: 4px; font-weight: 700; }
+    .tag.pending { background: rgba(245,158,11,0.1); color: var(--warning); }
+    .tag.approved { background: rgba(34,197,94,0.1); color: var(--success); }
+    .tag.scheduled { background: rgba(59,130,246,0.1); color: var(--primary); }
+    
+    /* Calendar */
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .cal-day { aspect-ratio: 1; border: 1px solid var(--border); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; cursor: pointer; position: relative; }
+    .cal-day.has-job::after { content: ''; width: 4px; height: 4px; background: var(--primary); border-radius: 50%; position: absolute; bottom: 4px; }
+    .cal-day.today { border-color: var(--primary); color: var(--primary); font-weight: 700; }
+
+    .hidden { display: none; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <div>
-        <h1>Owner Dashboard</h1>
-        <div id="health" class="status-pill">System Healthy</div>
+  <aside>
+    <div style="font-size: 1.5rem; font-weight: 800; margin-bottom: 40px; color: var(--primary)">MLB PRO</div>
+    <div class="nav-btn active" onclick="showSection('projects')">Projects</div>
+    <div class="nav-btn" onclick="showSection('inbox')">Inbox <span id="inbox-count" style="background:var(--danger); color:white; padding:2px 6px; border-radius:10px; font-size:0.7rem; margin-left:auto">0</span></div>
+    <div class="nav-btn" onclick="showSection('calendar')">Schedule</div>
+    <div class="nav-btn" onclick="showSection('analytics')">Site Traffic</div>
+    <div style="margin-top: auto">
+      <form method="post" action="/logout"><button class="btn-action" style="width:100%" type="submit">Logout</button></form>
+    </div>
+  </aside>
+
+  <main>
+    <!-- Projects Section -->
+    <div id="section-projects">
+      <header><h1>Active Projects</h1></header>
+      <div class="grid">
+        <div class="card"><div class="muted" style="font-size:0.8rem">Scheduled</div><div style="font-size:1.5rem; font-weight:700" id="stat-scheduled">0</div></div>
+        <div class="card"><div class="muted" style="font-size:0.8rem">In Progress</div><div style="font-size:1.5rem; font-weight:700" id="stat-active">0</div></div>
+        <div class="card"><div class="muted" style="font-size:0.8rem">Completed (Month)</div><div style="font-size:1.5rem; font-weight:700" id="stat-done">0</div></div>
       </div>
-      <form method="post" action="/logout"><button class="btn-logout" type="submit">Logout</button></form>
-    </header>
-    
-    <div class="grid" id="metrics">
-      <div class="card"><div class="card-label">Uptime</div><div class="card-value" id="val-uptime">0s</div></div>
-      <div class="card"><div class="card-label">Total Requests</div><div class="card-value" id="val-requests">0</div></div>
-      <div class="card"><div class="card-label">Unique Visitors</div><div class="card-value" id="val-visitors">0</div></div>
-      <div class="card"><div class="card-label">Success Rate</div><div class="card-value" id="val-rate">100%</div></div>
+      <div class="card">
+        <div class="section-title">Job Board</div>
+        <div id="project-list"></div>
+      </div>
     </div>
 
-    <div style="display:grid;grid-template-columns: 1.5fr 1fr; gap:24px;">
-      <div class="card">
-        <h2 style="font-size:1.1rem;margin-top:0">Top Traffic (Page Views)</h2>
-        <table id="tbl-routes">
-          <thead><tr><th>Route Path</th><th style="text-align:right">Hits</th></tr></thead>
-          <tbody id="routes-body"></tbody>
-        </table>
-      </div>
-      <div class="card">
-        <h2 style="font-size:1.1rem;margin-top:0">System Errors</h2>
-        <div id="errors-list" style="font-size:0.85rem"></div>
+    <!-- Inbox Section -->
+    <div id="section-inbox" class="hidden">
+      <header><h1>Request Inbox</h1></header>
+      <div id="inbox-list"></div>
+    </div>
+
+    <!-- Calendar Section -->
+    <div id="section-calendar" class="hidden">
+      <header><h1>Scheduling</h1></header>
+      <div style="display:grid; grid-template-columns: 1fr 300px; gap:24px">
+        <div class="card">
+          <div class="cal-grid" id="main-calendar"></div>
+        </div>
+        <div class="card">
+          <div class="section-title">Daily Agenda</div>
+          <div id="agenda-list" class="muted" style="font-size:0.9rem">Select a date to view jobs.</div>
+        </div>
       </div>
     </div>
-  </div>
+
+    <!-- Analytics Section -->
+    <div id="section-analytics" class="hidden">
+        <header><h1>Site Performance</h1></header>
+        <div class="grid" id="metrics-container"></div>
+        <div class="card"><div class="section-title">Popular Pages</div><div id="traffic-list"></div></div>
+    </div>
+  </main>
 
   <script>
-    function formatUptime(sec) {
-      const d = Math.floor(sec / 86400);
-      const h = Math.floor((sec % 86400) / 3600);
-      const m = Math.floor((sec % 3600) / 60);
-      const s = sec % 60;
-      let res = '';
-      if(d > 0) res += d + 'd ';
-      if(h > 0 || d > 0) res += h + 'h ';
-      res += m + 'm ' + s + 's';
-      return res;
+    let allData = [];
+    
+    function showSection(id) {
+        ['projects', 'inbox', 'calendar', 'analytics'].forEach(s => {
+            document.getElementById('section-' + s).classList.add('hidden');
+            const btns = document.querySelectorAll('.nav-btn');
+            btns.forEach(b => b.classList.remove('active'));
+        });
+        document.getElementById('section-' + id).classList.remove('hidden');
+        event.target.closest('.nav-btn').classList.add('active');
+    }
+
+    async function updateStatus(id, status, date = null) {
+        let url = `/api/owner/projects/${id}/status?status=${status}`;
+        if(date) url += `&date=${date}`;
+        await fetch(url, { method: 'POST' });
+        load();
     }
 
     async function load() {
-      try {
-        const data = await fetch('/api/owner/analytics').then(r => r.json());
-        document.getElementById('val-uptime').innerText = formatUptime(data.uptimeSeconds);
-        document.getElementById('val-requests').innerText = data.totalRequests;
-        document.getElementById('val-visitors').innerText = data.uniqueVisitors;
+        const projects = await fetch('/api/owner/projects').then(r => r.json());
+        const analytics = await fetch('/api/owner/analytics').then(r => r.json());
         
-        const rate = data.totalRequests === 0 ? 100 : Math.round((data.status2xx / data.totalRequests) * 100);
-        document.getElementById('val-rate').innerText = rate + '%';
-        
-        const health = document.getElementById('health');
-        if(data.status5xx > 0 || rate < 80) {
-          health.innerText = 'Degraded Performance';
-          health.className = 'status-pill danger';
-        } else {
-          health.innerText = 'System Healthy';
-          health.className = 'status-pill';
+        // Update Inbox
+        const pending = projects.filter(p => p.status === 'Pending');
+        document.getElementById('inbox-count').innerText = pending.length;
+        document.getElementById('inbox-list').innerHTML = pending.map(p => `
+            <div class="project-item">
+                <div>
+                    <div style="font-weight:600">${p.name} <span class="tag pending">${p.type}</span></div>
+                    <div class="muted" style="font-size:0.8rem">${p.phone} | ${p.email}</div>
+                    <div style="margin-top:8px">${p.message}</div>
+                </div>
+                <div style="display:flex; gap:8px">
+                    <button class="btn-action" style="color:var(--success)" onclick="updateStatus('${p.id}', 'Approved')">Approve</button>
+                    <button class="btn-action" style="color:var(--danger)" onclick="updateStatus('${p.id}', 'Declined')">Decline</button>
+                </div>
+            </div>
+        `).join('') || '<div class="muted">No new requests.</div>';
+
+        // Update Job Board
+        const active = projects.filter(p => p.status !== 'Pending' && p.status !== 'Declined');
+        document.getElementById('project-list').innerHTML = active.map(p => `
+            <div class="project-item">
+                <div>
+                    <div style="font-weight:600">${p.name} <span class="tag ${p.status.toLowerCase()}">${p.status}</span></div>
+                    <div class="muted" style="font-size:0.8rem">${p.type} - ${p.scheduledDate ? new Date(p.scheduledDate).toLocaleDateString() : 'TBD'}</div>
+                </div>
+                <div>
+                    ${p.status === 'Approved' ? `<input type="date" onchange="updateStatus('${p.id}', 'Scheduled', this.value)" style="background:var(--card); color:white; border:1px solid var(--border); padding:4px; border-radius:4px">` : ''}
+                    ${p.status === 'Scheduled' ? `<button class="btn-action" onclick="updateStatus('${p.id}', 'Completed')">Complete</button>` : ''}
+                </div>
+            </div>
+        `).join('') || '<div class="muted">No active projects.</div>';
+
+        // Update Stats
+        document.getElementById('stat-scheduled').innerText = projects.filter(p => p.status === 'Scheduled').length;
+        document.getElementById('stat-active').innerText = projects.filter(p => p.status === 'Approved').length;
+        document.getElementById('stat-done').innerText = projects.filter(p => p.status === 'Completed').length;
+
+        // Update Traffic
+        document.getElementById('traffic-list').innerHTML = analytics.topRoutes.map(r => `
+            <div style="display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--border)">
+                <span style="font-family:monospace; color:var(--primary)">${r.route}</span>
+                <strong>${r.hits}</strong>
+            </div>
+        `).join('');
+
+        // Calendar Render
+        const cal = document.getElementById('main-calendar');
+        cal.innerHTML = '';
+        const now = new Date();
+        const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        for(let i=1; i<=days; i++) {
+            const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+            const hasJob = projects.some(p => p.scheduledDate && p.scheduledDate.startsWith(dateStr));
+            const dayEl = document.createElement('div');
+            dayEl.className = `cal-day ${hasJob ? 'has-job' : ''} ${i === now.getDate() ? 'today' : ''}`;
+            dayEl.innerText = i;
+            cal.appendChild(dayEl);
         }
-
-        document.getElementById('routes-body').innerHTML = data.topRoutes.map(r => 
-          `<tr><td class="route-name">${r.route}</td><td style="text-align:right"><strong>${r.hits}</strong></td></tr>`
-        ).join('') || '<tr><td colspan="2" class="empty">No traffic recorded yet.</td></tr>';
-
-        document.getElementById('errors-list').innerHTML = data.recentErrors.map(e => 
-          `<div style="padding:8px 0;border-bottom:1px solid var(--border);color:var(--danger)">${e}</div>`
-        ).join('') || '<div class="empty">No recent system errors.</div>';
-      } catch (e) { console.error(e); }
     }
+
     load();
-    setInterval(load, 5000);
+    setInterval(load, 10000);
   </script>
 </body>
 </html>
 """;
+
 
 public const string UserDashboardHtml = """
 <!doctype html>

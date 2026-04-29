@@ -384,19 +384,79 @@
       </section>
 
       <section id="contact" class="section contact">
-        <div>
+        <div style="max-width: 600px;">
           <p class="eyebrow">Ready to Launch</p>
           <h2>Positioned to convert urgent electrical work and planned backup upgrades.</h2>
           <p>
-            Once the missing photos, certifications, testimonials, and supplier preferences
-            are confirmed, this can be expanded into a full production website.
+            Submit your details below. Benny will be notified immediately through the portal.
           </p>
+          
+          <form id="contact-form" style="margin-top: 32px; display: grid; gap: 16px; background: #f1f5f9; padding: 24px; border-radius: 12px; text-align: left;">
+            <div>
+                <label style="display:block; margin-bottom:4px; font-weight:600">Full Name</label>
+                <input name="name" required style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px" />
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px">
+                <div>
+                    <label style="display:block; margin-bottom:4px; font-weight:600">Email</label>
+                    <input name="email" type="email" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px" />
+                </div>
+                <div>
+                    <label style="display:block; margin-bottom:4px; font-weight:600">Phone</label>
+                    <input name="phone" required style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px" />
+                </div>
+            </div>
+            <div>
+                <label style="display:block; margin-bottom:4px; font-weight:600">Service Type</label>
+                <select name="type" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px">
+                    <option>Solar Quote</option>
+                    <option>Standard Electrical</option>
+                    <option>Emergency Call-out</option>
+                    <option>COC Enquiry</option>
+                </select>
+            </div>
+            <div>
+                <label style="display:block; margin-bottom:4px; font-weight:600">Message / Requirement</label>
+                <textarea name="message" rows="4" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px"></textarea>
+            </div>
+            <button type="submit" class="button" style="width:100%">Submit Request</button>
+            <div id="form-response" style="margin-top: 12px; font-weight:600; text-align: center;"></div>
+          </form>
         </div>
-        <a class="button" href="tel:+27670606503">Call for Fault Finding</a>
+        <div style="margin-top: 40px;">
+            <a class="button button-secondary" href="tel:+27670606503">Or Call: 067 060 6503</a>
+        </div>
       </section>
     </main>
     </div>
 
+    <script>
+        document.getElementById('contact-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            const resp = document.getElementById('form-response');
+            btn.disabled = true;
+            btn.innerText = 'Sending...';
+            
+            try {
+                const formData = new FormData(e.target);
+                const response = await fetch('/api/contact', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                resp.style.color = '#16a34a';
+                resp.innerText = data.message;
+                e.target.reset();
+            } catch (err) {
+                resp.style.color = '#dc2626';
+                resp.innerText = 'Error submitting request. Please try again.';
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Submit Request';
+            }
+        });
+    </script>
     <script src="script.js"></script>
   </body>
 </html>
