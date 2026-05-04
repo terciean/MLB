@@ -34,6 +34,16 @@ builder.Services.AddSingleton<ProjectStore>();
 builder.Services.AddSingleton<UserStore>(sp => {
     var config = sp.GetRequiredService<IConfiguration>();
     var initialUsers = config.GetSection("AdminPortal:Users").Get<List<PortalUser>>() ?? [];
+    
+    // Add simple fallback for easier setup
+    var fallbackPass = config["ADMIN_PASSWORD"];
+    if (!string.IsNullOrEmpty(fallbackPass))
+    {
+        var owner = initialUsers.FirstOrDefault(u => u.Role == "Owner");
+        if (owner != null) owner.Password = fallbackPass;
+        else initialUsers.Add(new PortalUser { Username = "owner", Password = fallbackPass, Role = "Owner", IsOnboarded = true });
+    }
+
     return new UserStore(initialUsers);
 });
 
