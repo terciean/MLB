@@ -666,6 +666,9 @@ public const string LoginPageHtml = """
 </head>
 <body>
   <div class="card">
+    <div style="text-align: center; margin-bottom: 24px;">
+      <img src="/logo/IMG-20260428-WA0002.jpg" alt="MLB Logo" style="height: 80px; border-radius: 8px;">
+    </div>
     <div id="login-section">
         <h1>Portal Login</h1>
         <p>Use your Owner or User credentials.</p>
@@ -880,17 +883,16 @@ public const string OwnerDashboardHtml = """
 </head>
 <body>
   <div class="mobile-header">
-    <div style="font-weight: 800; color: var(--primary)">MLB PRO</div>
+    <img src="/logo/IMG-20260428-WA0002.jpg" alt="MLB Logo" style="height: 40px; border-radius: 4px;">
     <button class="btn-action" onclick="toggleSidebar()">Menu</button>
   </div>
 
   <div id="sidebar-overlay" class="modal-overlay hidden" style="z-index:950; background:rgba(0,0,0,0.3)" onclick="toggleSidebar()"></div>
 
   <aside id="sidebar">
-    <div style="font-size: 1.5rem; font-weight: 800; margin-bottom: 40px; color: var(--primary); display: flex; justify-content: space-between; align-items: center">
-        MLB PRO
-    </div>
-    <div class="nav-btn active" id="btn-projects" onclick="showSection('projects')">Projects</div>
+    <div style="margin-bottom: 40px; display: flex; justify-content: center; align-items: center">
+        <img src="/logo/IMG-20260428-WA0002.jpg" alt="MLB Logo" style="height: 60px; border-radius: 8px;">
+    </div>    <div class="nav-btn active" id="btn-projects" onclick="showSection('projects')">Projects</div>
     <div class="nav-btn" id="btn-inbox" onclick="showSection('inbox')">Inbox <span id="inbox-count" style="background:var(--danger); color:white; padding:2px 6px; border-radius:10px; font-size:0.7rem; margin-left:auto">0</span></div>
     <div class="nav-btn" id="btn-calendar" onclick="showSection('calendar')">Schedule</div>
     <div class="nav-btn" id="btn-users" onclick="showSection('users')">Users</div>
@@ -1522,10 +1524,9 @@ public const string OwnerDashboardHtml = """
     <div class="container">
     <div class="announcement" id="site-announcement">Loading portal updates...</div>
     <header>
-      <h1>Task Dashboard</h1>
-      <form method="post" action="/logout"><button class="btn-logout" type="submit">Logout</button></form>
+      <img src="/logo/IMG-20260428-WA0002.jpg" alt="MLB Logo" style="height: 50px; border-radius: 4px;">
+      <form method="post" action="/logout"><button class="btn-logout" type="submit">Logout</button></form>    
     </header>
-
     <div class="grid">
       <div class="card">
         <div class="cal-header">

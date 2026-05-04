@@ -169,14 +169,10 @@ button {
 }
 
 .brand-mark {
-  display: grid;
-  place-items: center;
-  width: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   height: 72px;
-  border-radius: 18px;
-  background: linear-gradient(180deg, #ffffff, #dfeeff);
-  color: var(--deep-navy);
-  font: 800 1.35rem "Montserrat", Arial, sans-serif;
 }
 
 .nav-links {
@@ -975,10 +971,7 @@ blockquote {
   }
 
   .brand-mark {
-    width: 58px;
     height: 58px;
-    border-radius: 14px;
-    font-size: 1.1rem;
   }
 
   .hero-actions {
