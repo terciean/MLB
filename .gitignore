@@ -122,6 +122,11 @@ Thumbs.db
 
 # Publish output
 publish/
+publish_*/
+*.zip
+*.BAK
+*.mdf
+*.ldf
 
 # Local settings
 appsettings.json

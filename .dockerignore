@@ -1,0 +1,12 @@
+.git/
+.vs/
+bin/
+obj/
+publish_*/
+*.zip
+*.BAK
+*.mdf
+*.ldf
+node_modules/
+.dockerignore
+Dockerfile
