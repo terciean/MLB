@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,7 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddAuthentication(options =>
     {
         options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     })
     .AddCookie(options =>
     {
@@ -22,49 +21,6 @@ builder.Services.AddAuthentication(options =>
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.ExpireTimeSpan = TimeSpan.FromHours(12);
         options.SlidingExpiration = true;
-    })
-    .AddGoogle(options =>
-    {
-        options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
-        options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
-        options.CallbackPath = "/signin-google";
-
-        options.Events.OnRedirectToAuthorizationEndpoint = context =>
-        {
-            context.Response.Redirect(context.RedirectUri.Replace("http://", "https://"));
-            return Task.CompletedTask;
-        };
-
-        options.Events.OnTicketReceived = async context =>
-        {
-            var email = context.Principal?.FindFirstValue(ClaimTypes.Email);
-            if (!string.IsNullOrEmpty(email))
-            {
-                var userStore = context.HttpContext.RequestServices.GetRequiredService<UserStore>();
-                var user = userStore.GetByEmail(email);
-                if (user == null)
-                {
-                    // Auto-register new Google users
-                    user = new PortalUser 
-                    { 
-                        Username = email.Split('@')[0], 
-                        Email = email, 
-                        Role = "User", 
-                        IsOnboarded = false 
-                    };
-                    userStore.AddUser(user);
-                }
-
-                var claims = new List<Claim>
-                {
-                    new(ClaimTypes.Name, user.Username),
-                    new(ClaimTypes.Role, user.Role),
-                    new("IsOnboarded", user.IsOnboarded.ToString())
-                };
-                var appIdentity = new ClaimsIdentity(claims);
-                context.Principal?.AddIdentity(appIdentity);
-            }
-        };
     });
 
 builder.Services.AddAuthorization(options =>
@@ -728,15 +684,6 @@ public const string LoginPageHtml = """
             <input id="password" name="password" type="password" required />
             <button type="submit">Sign In</button>
         </form>
-        
-        <div style="margin-top:20px; display:flex; align-items:center; gap:10px; color:#56779e; font-size:0.85rem">
-            <div style="flex:1; height:1px; background:#284d82"></div> OR <div style="flex:1; height:1px; background:#284d82"></div>
-        </div>
-
-        <button onclick="location.href='/login-google'" style="background:#fff; color:#1e293b; border:1px solid #d1d5db; margin-top:20px; display:flex; align-items:center; justify-content:center; gap:10px">
-            <svg width="18" height="18" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.49h4.84c-.21 1.12-.84 2.07-1.79 2.7l2.85 2.21c1.67-1.53 2.63-3.79 2.63-5.56z" fill="#4285F4"/><path d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.85-2.21c-.79.53-1.8.85-3.11.85-2.39 0-4.41-1.61-5.14-3.77L.95 13.04C2.42 16.03 5.46 18 9 18z" fill="#34A853"/><path d="M3.86 10.74c-.18-.54-.28-1.12-.28-1.74s.1-1.2.28-1.74L.95 4.96C.35 6.17 0 7.55 0 9s.35 2.83.95 4.04l2.91-2.3z" fill="#FBBC05"/><path d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.59C13.46.86 11.42 0 9 0 5.46 0 2.42 1.97.95 4.96l2.91 2.3C4.59 5.19 6.61 3.58 9 3.58z" fill="#EA4335"/></svg>
-            Sign in with Google
-        </button>
 
         <a class="toggle-link" onclick="toggleMode()">Don't have an account? Register here</a>
     </div>
