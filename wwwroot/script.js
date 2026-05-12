@@ -1,5 +1,5 @@
 const tierData = {
-  1: {
+  "1": {
     title: "Level 1: Load-shedding Essentials",
     image: "/pictures/High_Capacity_Battery_Storage.jpg",
     description:
@@ -12,7 +12,7 @@ const tierData = {
       "Good entry point for phased upgrades later",
     ],
   },
-  2: {
+  "2": {
     title: "Level 2: Comfort Backup",
     image: "/pictures/Modern_Solar_Inverter_System.jpg",
     description:
@@ -25,9 +25,9 @@ const tierData = {
       "Suitable for clients planning gradual solar expansion",
     ],
   },
-  3: {
+  "3": {
     title: "Level 3: Full Off-Grid Readiness",
-    image: "/pictures/High_Capacity_Battery_Storage.jpg", // Could use another image if available
+    image: "/pictures/High_Capacity_Battery_Storage.jpg",
     description:
       "Best for customers wanting deep resilience across high-load items like geysers, stoves, workshops, or larger home energy demands.",
     bestFor: "Heavy-load resilience",
@@ -46,13 +46,14 @@ const menuToggle = document.querySelector(".menu-toggle");
 const navLinks = document.getElementById("primary-nav");
 
 function renderTier(tier) {
-  const selected = tierData[tier];
+  const selected = tierData[String(tier)];
+  if (!selected) return;
 
   result.innerHTML = `
     <p class="eyebrow">Recommended starting point</p>
     <h3>${selected.title}</h3>
-    <div style="margin: 1rem 0; border-radius: 12px; overflow: hidden; height: 200px;">
-      <img src="${selected.image}" alt="${selected.title}" style="width: 100%; height: 100%; object-fit: cover;">
+    <div class="project-frame" style="margin: 1rem 0;">
+      <img src="${selected.image}" alt="${selected.title}">
     </div>
     <p>${selected.description}</p>
     <div class="result-specs">

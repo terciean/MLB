@@ -545,6 +545,36 @@ button {
   text-align: center;
 }
 
+.project-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  box-shadow: var(--shadow);
+  aspect-ratio: 16 / 10;
+  display: flex;
+}
+
+.project-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.project-frame:hover img {
+  transform: scale(1.05);
+}
+
+.project-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 60%, rgba(0, 0, 0, 0.45));
+  pointer-events: none;
+}
+
 .gallery-grid {
   display: grid;
   gap: 1rem;
