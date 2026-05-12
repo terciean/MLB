@@ -15,11 +15,11 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://challenges.cloudflare.com https://static.cloudflareinsights.com; script-src-elem 'self' 'unsafe-inline' https://www.googletagmanager.com https://challenges.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://www.google-analytics.com; connect-src 'self' https://www.google-analytics.com https://static.cloudflareinsights.com; frame-src 'self' https://challenges.cloudflare.com;">
+    <!-- CSP Updated to allow Unsplash Images -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://challenges.cloudflare.com https://static.cloudflareinsights.com; script-src-elem 'self' 'unsafe-inline' https://www.googletagmanager.com https://challenges.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://www.google-analytics.com https://images.unsplash.com; connect-src 'self' https://www.google-analytics.com https://static.cloudflareinsights.com; frame-src 'self' https://challenges.cloudflare.com;">
   </head>
   <body>
     <div class="page-shell">
-    <header class="hero">
       <nav class="nav">
         <a class="brand" href="/" aria-label="MLB Electrical home">
           <div class="brand-mark">
@@ -50,13 +50,15 @@
         <div class="nav-links" id="primary-nav">
           <a href="/login" class="d-only-mobile">Portal Login</a>
           <a href="https://wa.me/27670606503" class="d-only-mobile">WhatsApp Benny</a>
+          <a href="tel:+27670606503" class="d-only-mobile">Call Benny</a>
           <a href="mailto:beniemianga13@gmail.com">Email Us</a>
-          <a href="#backup-finder">Backup</a>
+          <a href="#backup-finder">Solar & Backup</a>
           <a href="#services">Services</a>
           <a href="#contact">Contact</a>
         </div>
       </nav>
 
+    <header class="hero">
       <div class="hero-grid">
         <section class="hero-copy">
           <div class="hero-badges">
@@ -185,20 +187,7 @@
         </div>
       </section>
 
-      <section class="section trust-strip">
-        <div class="trust-card">
-          <span class="trust-label">Ideal hero image</span>
-          <strong>Signature solar installation or branded service vehicle on-site</strong>
-        </div>
-        <div class="trust-card">
-          <span class="trust-label">Fast-track opportunity</span>
-          <strong>Property transfer COCs for homeowners, conveyancers, and agents</strong>
-        </div>
-        <div class="trust-card">
-          <span class="trust-label">Search intent</span>
-          <strong>“Electrician near me” supported by suburb-specific service messaging</strong>
-        </div>
-      </section>
+      
 
       <section id="backup-finder" class="section accent-section">
         <div class="section-heading">
