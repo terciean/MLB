@@ -116,11 +116,12 @@ button {
 }
 
 .nav {
-  grid-template-columns: 1fr auto;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
   margin-bottom: 3rem;
   position: relative;
-  z-index: 1;
+  z-index: 1000;
 }
 
 .menu-toggle {
