@@ -397,7 +397,7 @@ button {
   background:
     linear-gradient(180deg, rgba(3, 8, 20, 0.12), rgba(3, 8, 20, 0.78)),
     radial-gradient(circle at top right, rgba(0, 86, 179, 0.26), transparent 34%),
-    url("https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=1400&q=80");
+    url("/pictures/Solar_Panel_Installation_Action.jpg");
   background-size: cover;
   background-position: center;
 }
@@ -567,7 +567,7 @@ button {
 .photo-solar {
   background:
     linear-gradient(180deg, rgba(3, 8, 20, 0.12), rgba(3, 8, 20, 0.78)),
-    url("https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&w=1200&q=80");
+    url("/pictures/Modern_Solar_Inverter_System.jpg");
   background-size: cover;
   background-position: center;
 }
@@ -575,7 +575,7 @@ button {
 .photo-fault {
   background:
     linear-gradient(180deg, rgba(3, 8, 20, 0.18), rgba(3, 8, 20, 0.8)),
-    url("https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=1200&q=80");
+    url("/pictures/Professional_DB_Wiring.jpg");
   background-size: cover;
   background-position: center;
 }
@@ -591,7 +591,7 @@ button {
 .photo-van {
   background:
     linear-gradient(180deg, rgba(3, 8, 20, 0.18), rgba(3, 8, 20, 0.78)),
-    url("https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1600&q=80");
+    url("/pictures/Solar_Panel_Installation_Action.jpg");
   background-size: cover;
   background-position: center;
 }
