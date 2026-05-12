@@ -1,6 +1,7 @@
 const tierData = {
   1: {
     title: "Level 1: Load-shedding Essentials",
+    image: "/pictures/High_Capacity_Battery_Storage.jpg",
     description:
       "Ideal for homes that want dependable lighting, internet, phone charging, and TV runtime during scheduled outages.",
     bestFor: "Core circuits only",
@@ -13,6 +14,7 @@ const tierData = {
   },
   2: {
     title: "Level 2: Comfort Backup",
+    image: "/pictures/Modern_Solar_Inverter_System.jpg",
     description:
       "A practical middle ground for households that want to keep a fridge and a few daily-use appliances running with less disruption.",
     bestFor: "Comfort essentials",
@@ -25,6 +27,7 @@ const tierData = {
   },
   3: {
     title: "Level 3: Full Off-Grid Readiness",
+    image: "/pictures/High_Capacity_Battery_Storage.jpg", // Could use another image if available
     description:
       "Best for customers wanting deep resilience across high-load items like geysers, stoves, workshops, or larger home energy demands.",
     bestFor: "Heavy-load resilience",
@@ -48,6 +51,9 @@ function renderTier(tier) {
   result.innerHTML = `
     <p class="eyebrow">Recommended starting point</p>
     <h3>${selected.title}</h3>
+    <div style="margin: 1rem 0; border-radius: 12px; overflow: hidden; height: 200px;">
+      <img src="${selected.image}" alt="${selected.title}" style="width: 100%; height: 100%; object-fit: cover;">
+    </div>
     <p>${selected.description}</p>
     <div class="result-specs">
       <div><span>Best For</span><strong>${selected.bestFor}</strong></div>
